@@ -64,34 +64,13 @@ const handleSelect = (key: string | number) => {
     }
 };
 
-/**
- * NDropdown 深色主题覆盖
- * NDropdown 的主题变量在自身（不通过 peers.Menu）
- * peers.Popover 控制外层弹层容器
- */
-const dropdownDarkTheme = {
-    peers: {
-        Popover: {
-            color: "rgb(30, 41, 59)", // slate-800 弹层背景
-            borderRadius: "6px",
-            dividerColor: "rgba(71, 85, 105, 0.6)", // slate-600/60
-        },
-    },
-    // Dropdown 自身主题（菜单项配色）
-    optionTextColor: "rgb(226, 232, 240)",          // slate-200
-    optionTextColorHover: "rgb(241, 245, 249)",      // slate-100
-    optionTextColorActive: "rgb(96, 165, 250)",      // blue-400
-    optionColorHover: "rgba(71, 85, 105, 0.5)",      // slate-600/50
-    optionColorActive: "rgba(96, 165, 250, 0.15)",   // blue-400/15
-    dividerColor: "rgba(71, 85, 105, 0.6)",          // slate-600/60
-    borderRadius: "6px",
-};
+
 </script>
 
 <template>
-  <!-- 卡片容器：仅用于布局，自身不可点击 -->
+  <!-- 容器：仅用于布局，自身不可点击（无边框无背景，水平间距与下方分类树对齐） -->
   <div
-    class="flex w-full items-center gap-2 rounded-md border border-slate-600/60 bg-slate-700/50 px-3 py-2 text-sm text-slate-200"
+    class="flex w-full items-center gap-2 px-2 py-2 text-sm text-slate-200"
   >
     <!-- 左侧：当前笔记本名（纯展示，不可点击） -->
     <span class="flex-1 truncate text-left">{{ triggerText }}</span>
@@ -101,7 +80,6 @@ const dropdownDarkTheme = {
       :options="dropdownOptions"
       trigger="click"
       placement="bottom-start"
-      :theme-overrides="dropdownDarkTheme"
       @select="handleSelect"
     >
       <button

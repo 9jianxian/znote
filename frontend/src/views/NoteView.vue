@@ -339,7 +339,7 @@ const handleSaveTitle = async () => {
       </div>
 
       <!-- 笔记本下拉 + 新建按钮 -->
-      <div class="border-b border-slate-700/60 p-3">
+      <div class="border-b border-slate-700/60 px-2 py-3">
         <NotebookSwitcher
           :notebooks="noteStore.topNotebooks"
           :model-value="noteStore.activeNotebookId"

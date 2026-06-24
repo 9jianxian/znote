@@ -63,27 +63,24 @@ const handleMenuSelect = (key: string) => {
 </script>
 
 <template>
-  <!-- 用户信息卡片：头像 + 昵称 + 下拉 -->
-  <NDropdown :options="userMenuOptions" trigger="click" @select="handleMenuSelect">
-    <div
-      class="group flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-600/60 bg-slate-700/50 px-3 py-2.5 transition hover:border-slate-500"
-    >
+  <!-- 用户信息卡片：头像 + 昵称（点击头像展开下拉菜单） -->
+  <div class="flex items-center gap-2.5 px-3 py-2.5">
+    <NDropdown :options="userMenuOptions" trigger="click" @select="handleMenuSelect">
       <!-- 头像（无图时回退为首字母） -->
       <div
-        class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white"
+        class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white transition hover:ring-2 hover:ring-blue-400/60"
       >
         <img v-if="userStore.userInfo.avatar" :src="userStore.userInfo.avatar" class="h-full w-full object-cover" alt="avatar" />
         <span v-else>{{ initial }}</span>
       </div>
-      <div class="min-w-0 flex-1">
-        <div class="truncate text-sm font-medium text-slate-100">
-          {{ userStore.userInfo.username || t("dashboard.user.fallback") }}
-        </div>
-        <div class="truncate text-xs text-slate-400">
-          {{ userStore.userInfo.email || "" }}
-        </div>
+    </NDropdown>
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-sm font-medium text-slate-100">
+        {{ userStore.userInfo.username || t("dashboard.user.fallback") }}
       </div>
-      <ZIcon name="ri:arrow-down-s-line" :size="16" color="#94a3b8" />
+      <div class="truncate text-xs text-slate-400">
+        {{ userStore.userInfo.email || "" }}
+      </div>
     </div>
-  </NDropdown>
+  </div>
 </template>
