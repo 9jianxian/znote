@@ -27,6 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: "select", id: number): void;
     (e: "requestDialog", parentId: number, parentName: string): void;
+    (e: "contextmenu", node: NotebookNode, event: MouseEvent): void;
 }>();
 
 /** 展开/折叠状态 */
@@ -70,6 +71,7 @@ const handleAddChild = (e: Event) => {
       :class="activeId === node.id ? 'bg-blue-500/15 text-blue-300' : 'text-slate-300 hover:bg-slate-700/60'"
       :style="{ paddingLeft: `${8 + level * 16}px` }"
       @click="handleSelect"
+      @contextmenu.prevent="(e: MouseEvent) => emit('contextmenu', node, e)"
       @mouseenter="hovered = true"
       @mouseleave="hovered = false"
     >
@@ -118,6 +120,7 @@ const handleAddChild = (e: Event) => {
         :level="level + 1"
         @select="(id: number) => emit('select', id)"
         @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
+        @contextmenu="(n: NotebookNode, e: MouseEvent) => emit('contextmenu', n, e)"
       />
     </div>
   </div>

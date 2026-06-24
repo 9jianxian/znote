@@ -21,9 +21,12 @@ import NoteList from "@/components/note/NoteList.vue";
 import NoteEditor from "@/components/note/NoteEditor.vue";
 import NoteMetaBar from "@/components/note/NoteMetaBar.vue";
 import CreateNotebookDialog from "@/components/note/dialogs/CreateNotebookDialog.vue";
+import CategoryContextMenu from "@/components/note/CategoryContextMenu.vue";
 import { useNoteStore } from "@/stores/note";
 import { useUserStore } from "@/stores/user";
+import { NModal, NInput } from "naive-ui";
 import type { NotebookNode } from "@/types/note";
+import type { CategoryContextAction } from "@/components/note/CategoryContextMenu.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -40,6 +43,24 @@ const showCreateNotebook = ref(false);
 const showCreateCategory = ref(false);
 /** 新建子分类时，传入的父分类信息 */
 const newCategoryParent = ref<{ id: number; name: string } | null>(null);
+
+// ==================== 分类右键菜单 ====================
+
+/** 分类右键菜单显隐 */
+const categoryMenuShow = ref(false);
+/** 分类右键菜单位置 X */
+const categoryMenuX = ref(0);
+/** 分类右键菜单位置 Y */
+const categoryMenuY = ref(0);
+/** 当前右键的分类节点 */
+const categoryMenuNode = ref<NotebookNode | null>(null);
+
+/** 重命名 Dialog 显隐 */
+const showRenameDialog = ref(false);
+/** 重命名输入框值 */
+const renameValue = ref("");
+/** 重命名目标节点 */
+const renameTarget = ref<NotebookNode | null>(null);
 
 // ==================== 编辑器草稿状态 ====================
 
@@ -208,6 +229,33 @@ const handleAddTopCategory = () => {
     showCreateCategory.value = true;
 };
 
+/** 分类节点右键菜单 */
+const handleCategoryContextMenu = (node: NotebookNode, e: MouseEvent) => {
+    categoryMenuNode.value = node;
+    categoryMenuX.value = e.clientX;
+    categoryMenuY.value = e.clientY;
+    categoryMenuShow.value = true;
+};
+
+/** 分类右键菜单选中 */
+const handleCategoryMenuSelect = (action: CategoryContextAction, node: NotebookNode) => {
+    if (action === "rename") {
+        renameValue.value = node.title;
+        renameTarget.value = node;
+        showRenameDialog.value = true;
+    }
+};
+
+/** 确认重命名 */
+const handleConfirmRename = async () => {
+    if (!renameTarget.value || !renameValue.value.trim()) return;
+    const result = await noteStore.updateNotebook(renameTarget.value.id, { title: renameValue.value.trim() });
+    if (result) {
+        message.success(t("note.category.rename.success"));
+    }
+    showRenameDialog.value = false;
+};
+
 /** 打开"新建子分类"Dialog（由 CategoryTree 节点 requestDialog 触发） */
 const openCreateCategoryDialog = (parentId: number, parentName: string) => {
     newCategoryParent.value = { id: parentId, name: parentName };
@@ -372,6 +420,7 @@ const handleSaveTitle = async () => {
           :active-id="noteStore.activeCategoryId"
           @select="handleSelectCategory"
           @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
+          @contextmenu="handleCategoryContextMenu"
         />
       </div>
     </aside>
@@ -445,6 +494,34 @@ const handleSaveTitle = async () => {
         </div>
       </div>
     </main>
+
+    <!-- ==================== 分类右键菜单 ==================== -->
+    <CategoryContextMenu
+      v-model:show="categoryMenuShow"
+      :x="categoryMenuX"
+      :y="categoryMenuY"
+      :node="categoryMenuNode"
+      @select="handleCategoryMenuSelect"
+    />
+
+    <!-- ==================== 重命名分类 Dialog ==================== -->
+    <NModal
+      v-model:show="showRenameDialog"
+      preset="dialog"
+      :title="t('note.category.rename.title')"
+      :positive-text="t('note.dialog.confirm')"
+      :negative-text="t('note.dialog.cancel')"
+      :mask-closable="false"
+      @positive-click="handleConfirmRename"
+      @negative-click="showRenameDialog = false"
+    >
+      <NInput
+        v-model:value="renameValue"
+        :placeholder="t('note.category.rename.placeholder')"
+        autofocus
+        @keydown.enter="handleConfirmRename"
+      />
+    </NModal>
 
     <!-- ==================== Dialogs ==================== -->
     <!-- 新建笔记本 -->

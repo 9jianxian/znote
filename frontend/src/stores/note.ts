@@ -265,6 +265,26 @@ export const useNoteStore = defineStore("note", {
         },
 
         /**
+         * 更新笔记本/分类
+         * 更新成功后同步更新本地缓存
+         */
+        async updateNotebook(id: number, payload: { title?: string; description?: string }) {
+            this.loading.save = true;
+            try {
+                const result = await notebookApi.updateNotebook(id, payload);
+                if (result) {
+                    this.allNotebooks = this.allNotebooks.map((nb) => (nb.id === id ? result : nb));
+                    if (result.parent_id === null) {
+                        this.topNotebooks = this.topNotebooks.map((nb) => (nb.id === id ? result : nb));
+                    }
+                }
+                return result;
+            } finally {
+                this.loading.save = false;
+            }
+        },
+
+        /**
          * 创建笔记
          */
         async createNote(payload: CreateNotePayload) {

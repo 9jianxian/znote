@@ -33,6 +33,7 @@ const emit = defineEmits<{
     (e: "select", id: number): void;
     (e: "addChild", id: number, title: string): void;
     (e: "requestDialog", parentId: number, parentName: string): void;
+    (e: "contextmenu", node: NotebookNode, event: MouseEvent): void;
 }>();
 
 /** 是否为空 */
@@ -52,6 +53,7 @@ const isEmpty = computed(() => props.tree.length === 0);
         @select="(id: number) => emit('select', id)"
         @add-child="(id: number, title: string) => emit('addChild', id, title)"
         @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
+        @contextmenu="(node: NotebookNode, e: MouseEvent) => emit('contextmenu', node, e)"
       />
     </template>
 
