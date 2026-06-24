@@ -26,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: "select", id: number): void;
-    (e: "addChild", id: number, title: string): void;
+    (e: "requestDialog", parentId: number, parentName: string): void;
 }>();
 
 /** 展开/折叠状态 */
@@ -50,16 +50,15 @@ const handleSelect = () => {
     emit("select", props.node.id);
 };
 
-/** 触发新建子分类（弹原生 prompt，简单实现） */
+/**
+ * 触发新建子分类
+ * 不再用 window.prompt，改为向上冒泡 requestDialog 事件，
+ * 由 NoteView 统一弹出 CreateNotebookDialog
+ */
 const handleAddChild = (e: Event) => {
     e.stopPropagation();
-    // 展开当前节点
     expanded.value = true;
-    // 弹出 prompt 让用户输入分类名
-    const title = window.prompt(t("note.category.create.placeholder"));
-    if (title && title.trim()) {
-        emit("addChild", props.node.id, title.trim());
-    }
+    emit("requestDialog", props.node.id, props.node.title);
 };
 </script>
 
@@ -118,7 +117,7 @@ const handleAddChild = (e: Event) => {
         :active-id="activeId"
         :level="level + 1"
         @select="(id: number) => emit('select', id)"
-        @add-child="(id: number, title: string) => emit('addChild', id, title)"
+        @request-dialog="(pid: number, pname: string) => emit('requestDialog', pid, pname)"
       />
     </div>
   </div>

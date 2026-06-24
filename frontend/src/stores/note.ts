@@ -237,5 +237,34 @@ export const useNoteStore = defineStore("note", {
                 this.loading.save = false;
             }
         },
+
+        /**
+         * 更新笔记（部分更新）
+         * 更新成功后同步更新本地缓存
+         */
+        async updateNote(
+            id: number,
+            payload: Partial<Pick<import("@/types/note").Note, "title" | "content" | "notebook_id" | "is_pinned" | "sort_order">>,
+        ) {
+            this.loading.save = true;
+            try {
+                const result = await noteApi.updateNote(id, payload);
+                if (result) {
+                    // 同步更新本地缓存中对应的笔记
+                    for (const cid of Object.keys(this.notesByCategory)) {
+                        const list = this.notesByCategory[Number(cid)];
+                        const idx = list.findIndex((n) => n.id === id);
+                        if (idx !== -1) {
+                            list[idx] = result;
+                            this.notesByCategory = { ...this.notesByCategory };
+                            break;
+                        }
+                    }
+                }
+                return result;
+            } finally {
+                this.loading.save = false;
+            }
+        },
     },
 });

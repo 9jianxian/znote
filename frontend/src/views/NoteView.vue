@@ -2,16 +2,16 @@
 /**
  * 笔记工作台主页面
  *
- * 三栏布局：
- *   Col-1（240px）：用户信息 + 笔记本下拉 + 分类树
- *   Col-2（320px）：搜索 + 新建笔记 + 笔记列表
+ * 三栏布局（Col-1 / Col-2 宽度可拖拽，持久化到 localStorage）：
+ *   Col-1：用户信息 + 笔记本下拉 + "我的笔记"标题栏 + 分类树
+ *   Col-2：搜索 + 新建笔记 + 笔记列表
  *   Col-3（flex-1）：笔记标题 + 元信息 + Vditor 编辑器
  *
  * 核心状态由 stores/note.ts 统一管理，本组件只负责编排和事件转发。
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NSpin, useMessage } from "naive-ui";
+import { NInput, NSpin, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import UserHeader from "@/components/note/UserHeader.vue";
@@ -21,7 +21,6 @@ import NoteList from "@/components/note/NoteList.vue";
 import NoteEditor from "@/components/note/NoteEditor.vue";
 import NoteMetaBar from "@/components/note/NoteMetaBar.vue";
 import CreateNotebookDialog from "@/components/note/dialogs/CreateNotebookDialog.vue";
-import CreateNoteDialog from "@/components/note/dialogs/CreateNoteDialog.vue";
 import { useNoteStore } from "@/stores/note";
 import { useUserStore } from "@/stores/user";
 import type { NotebookNode } from "@/types/note";
@@ -39,10 +38,72 @@ const userStore = useUserStore();
 const showCreateNotebook = ref(false);
 /** 新建子分类 Dialog 显隐 */
 const showCreateCategory = ref(false);
-/** 新建笔记 Dialog 显隐 */
-const showCreateNote = ref(false);
 /** 新建子分类时，传入的父分类信息 */
 const newCategoryParent = ref<{ id: number; name: string } | null>(null);
+
+// ==================== 编辑器草稿状态 ====================
+
+/** 当前编辑中的标题（暂存，保存后写回 store） */
+const draftTitle = ref("");
+/** 当前编辑中的内容（暂存，保存后写回 store） */
+const draftContent = ref("");
+/** 保存按钮 loading 态 */
+const isSaving = ref(false);
+/** 标题输入框 ref（用于自动聚焦） */
+const titleInputRef = ref<InstanceType<typeof NInput> | null>(null);
+
+// ==================== 侧边栏可调宽度 ====================
+
+/** 第一栏宽度（px），从 localStorage 恢复 */
+const col1Width = ref(240);
+/** 第二栏宽度（px），从 localStorage 恢复 */
+const col2Width = ref(320);
+
+/** 宽度约束（px） */
+const COL1_MIN = 200;
+const COL1_MAX = 420;
+const COL2_MIN = 240;
+const COL2_MAX = 520;
+
+/** 限制宽度在合理范围内 */
+const clamp1 = (w: number) => Math.max(COL1_MIN, Math.min(COL1_MAX, w));
+const clamp2 = (w: number) => Math.max(COL2_MIN, Math.min(COL2_MAX, w));
+
+/**
+ * 开始拖拽调整列宽
+ * @param col 1 = 第一栏，2 = 第二栏
+ */
+const startResize = (col: 1 | 2, e: MouseEvent) => {
+    // 防止拖拽选中文本
+    e.preventDefault();
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const startX = e.clientX;
+    const startW = col === 1 ? col1Width.value : col2Width.value;
+
+    const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientX - startX;
+        if (col === 1) {
+            col1Width.value = clamp1(startW + delta);
+        } else {
+            col2Width.value = clamp2(startW + delta);
+        }
+    };
+
+    const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        // 持久化到 localStorage
+        localStorage.setItem("note-col1-width", String(col1Width.value));
+        localStorage.setItem("note-col2-width", String(col2Width.value));
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+};
 
 // ==================== 计算属性 ====================
 
@@ -67,16 +128,31 @@ const hasActiveNote = computed(() => noteStore.activeNoteId !== null && noteStor
 
 /**
  * 页面挂载时：
- * 1. 检查登录态
- * 2. 加载用户信息
- * 3. 加载笔记本树
+ * 1. 恢复侧边栏宽度
+ * 2. 检查登录态
+ * 3. 加载用户信息
+ * 4. 加载笔记本树
  */
 onMounted(async () => {
+    // 从 localStorage 恢复列宽
+    const w1 = localStorage.getItem("note-col1-width");
+    const w2 = localStorage.getItem("note-col2-width");
+    if (w1) col1Width.value = clamp1(Number(w1));
+    if (w2) col2Width.value = clamp2(Number(w2));
+
     const ok = await userStore.checkLogin();
     if (!ok) return;
 
     await userStore.getUserInfo();
     await noteStore.loadNotebookTree();
+
+    // 注册全局快捷键：Ctrl+S / Cmd+S 保存
+    window.addEventListener("keydown", handleSaveShortcut);
+});
+
+/** 组件卸载时清理键盘监听 */
+onBeforeUnmount(() => {
+    window.removeEventListener("keydown", handleSaveShortcut);
 });
 
 /** 路由 query 变化时支持深链（可选） */
@@ -114,8 +190,6 @@ const handleConfirmCreateNotebook = async (title: string) => {
         // 自动切换到新建的笔记本
         noteStore.switchNotebook(result.id);
     } else {
-        // 失败时给出提示
-        // （API 层未抛错，简化处理：关闭弹窗）
         showCreateNotebook.value = false;
     }
 };
@@ -125,10 +199,19 @@ const handleSelectCategory = async (id: number) => {
     await noteStore.selectCategory(id);
 };
 
-/** 打开"新建子分类"Dialog */
-const handleAddChild = (parentId: number, title: string) => {
-    // 旧的 prompt 路径保留兼容：直接调用 API
-    void doCreateCategory(parentId, title);
+/** 打开"新建子分类"Dialog（用 Dialog 方式，由"我的笔记"标题栏触发） */
+const handleAddTopCategory = () => {
+    if (noteStore.activeNotebookId === null) return;
+    const nb = noteStore.activeNotebook;
+    if (!nb) return;
+    newCategoryParent.value = { id: nb.id, name: nb.title };
+    showCreateCategory.value = true;
+};
+
+/** 打开"新建子分类"Dialog（由 CategoryTree 节点 requestDialog 触发） */
+const openCreateCategoryDialog = (parentId: number, parentName: string) => {
+    newCategoryParent.value = { id: parentId, name: parentName };
+    showCreateCategory.value = true;
 };
 
 /** 实际创建子分类 */
@@ -140,12 +223,6 @@ const doCreateCategory = async (parentId: number, title: string) => {
     }
 };
 
-/** 打开"新建子分类"Dialog（用 Dialog 方式） */
-const openCreateCategoryDialog = (parentId: number, parentName: string) => {
-    newCategoryParent.value = { id: parentId, name: parentName };
-    showCreateCategory.value = true;
-};
-
 /** 提交"新建子分类" */
 const handleConfirmCreateCategory = async (title: string) => {
     if (!newCategoryParent.value) return;
@@ -153,29 +230,25 @@ const handleConfirmCreateCategory = async (title: string) => {
     showCreateCategory.value = false;
 };
 
-/** 打开"新建笔记"Dialog */
-const handleOpenCreateNote = () => {
+/**
+ * 新建笔记（内联方式）
+ * 直接创建一个未命名笔记，自动选中，然后聚焦标题让用户改名
+ */
+const handleOpenCreateNote = async () => {
     if (noteStore.activeCategoryId === null) {
         message.warning(t("note.note.create.placeholder"));
         return;
     }
-    showCreateNote.value = true;
-};
-
-/** 提交"新建笔记" */
-const handleConfirmCreateNote = async (title: string) => {
-    if (noteStore.activeCategoryId === null) return;
     const result = await noteStore.createNote({
         notebook_id: noteStore.activeCategoryId,
-        title,
+        title: t("note.note.untitled"),
         content: "",
     });
     if (result) {
-        showCreateNote.value = false;
-        // 自动选中新创建的笔记
         noteStore.selectNote(result.id);
-    } else {
-        showCreateNote.value = false;
+        // 聚焦标题输入框让用户立即改名
+        await nextTick();
+        titleInputRef.value?.focus();
     }
 };
 
@@ -184,16 +257,82 @@ const handleSelectNote = (id: number) => {
     noteStore.selectNote(id);
 };
 
-/** 编辑器内容变更（v2 实现保存时使用） */
-const handleEditorChange = (_value: string) => {
-    // 占位：v2 接入 updateNote 接口
+/**
+ * 同步草稿状态
+ * 切换笔记时，从 noteStore.activeNote 读取最新值写入草稿
+ */
+watch(
+    () => noteStore.activeNoteId,
+    () => {
+        const note = noteStore.activeNote;
+        draftTitle.value = note?.title ?? "";
+        draftContent.value = note?.content ?? "";
+    },
+);
+
+/** 编辑器内容变更 → 暂存到草稿 */
+const handleEditorChange = (value: string) => {
+    draftContent.value = value;
+};
+
+/** 保存笔记（标题 + 内容） */
+const handleSaveNote = async () => {
+    if (noteStore.activeNoteId === null) return;
+    isSaving.value = true;
+    try {
+        await noteStore.updateNote(noteStore.activeNoteId, {
+            title: draftTitle.value,
+            content: draftContent.value,
+        });
+        // 轻量提示
+        message.success(t("note.editor.saved"));
+    } catch {
+        message.error(t("note.editor.save_failed"));
+    } finally {
+        isSaving.value = false;
+    }
+};
+
+/**
+ * 全局快捷键：Ctrl+S（Windows/Linux） / Cmd+S（macOS）保存笔记
+ * 仅在有选中笔记时生效；屏蔽浏览器默认的"另存为"弹窗
+ */
+const handleSaveShortcut = (e: KeyboardEvent) => {
+    const isSave = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && !e.shiftKey && !e.altKey;
+    if (!isSave) return;
+    e.preventDefault();
+    if (noteStore.activeNoteId === null || isSaving.value) return;
+    void handleSaveNote();
+};
+
+/** 标题失焦时自动保存标题 */
+const handleSaveTitle = async () => {
+    if (noteStore.activeNoteId === null) return;
+    const trimmed = draftTitle.value.trim();
+    if (!trimmed) {
+        // 标题不能为空，回退到原值
+        draftTitle.value = noteStore.activeNote?.title ?? t("note.note.untitled");
+        return;
+    }
+    // 仅标题有变化时才保存
+    if (trimmed !== noteStore.activeNote?.title) {
+        isSaving.value = true;
+        try {
+            await noteStore.updateNote(noteStore.activeNoteId, { title: trimmed });
+        } finally {
+            isSaving.value = false;
+        }
+    }
 };
 </script>
 
 <template>
   <div class="flex h-screen w-screen overflow-hidden bg-[#f7f8fa]">
     <!-- ==================== 第一栏：导航 ==================== -->
-    <aside class="flex w-60 shrink-0 flex-col border-r border-slate-200/60 bg-white">
+    <aside
+      :style="{ width: col1Width + 'px' }"
+      class="flex shrink-0 flex-col border-r border-slate-200/60 bg-white"
+    >
       <!-- 用户信息 -->
       <div class="border-b border-slate-200/60 p-3">
         <UserHeader @navigate="handleNavigate" />
@@ -209,6 +348,21 @@ const handleEditorChange = (_value: string) => {
         />
       </div>
 
+      <!-- 分类区域标题栏：我的笔记 + 新建分类按钮 -->
+      <div class="flex items-center justify-between border-b border-slate-200/60 px-3 py-2">
+        <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+          {{ t("note.category.header") }}
+        </span>
+        <button
+          class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-blue-600"
+          :disabled="noteStore.activeNotebookId === null"
+          :title="t('note.category.add_child')"
+          @click="handleAddTopCategory"
+        >
+          <ZIcon name="ri:add-line" :size="14" color="currentColor" />
+        </button>
+      </div>
+
       <!-- 分类树 -->
       <div class="flex-1 overflow-y-auto p-2">
         <NSpin v-if="noteStore.loading.tree" class="block py-6" />
@@ -217,13 +371,19 @@ const handleEditorChange = (_value: string) => {
           :tree="currentCategoryTree"
           :active-id="noteStore.activeCategoryId"
           @select="handleSelectCategory"
-          @add-child="(id: number, title: string) => handleAddChild(id, title)"
+          @request-dialog="(pid: number, pname: string) => openCreateCategoryDialog(pid, pname)"
         />
       </div>
     </aside>
 
+    <!-- 第一栏右侧拖拽把手 -->
+    <div class="resize-handle" @mousedown="(e) => startResize(1, e)" />
+
     <!-- ==================== 第二栏：笔记列表 ==================== -->
-    <aside class="flex w-80 shrink-0 flex-col border-r border-slate-200/60 bg-white">
+    <aside
+      :style="{ width: col2Width + 'px' }"
+      class="flex shrink-0 flex-col border-r border-slate-200/60 bg-white"
+    >
       <NoteList
         :notes="noteStore.displayedNotes"
         :active-id="noteStore.activeNoteId"
@@ -234,24 +394,39 @@ const handleEditorChange = (_value: string) => {
       />
     </aside>
 
+    <!-- 第二栏右侧拖拽把手 -->
+    <div class="resize-handle" @mousedown="(e) => startResize(2, e)" />
+
     <!-- ==================== 第三栏：编辑器 ==================== -->
     <main class="flex flex-1 flex-col overflow-hidden">
       <!-- 选中笔记时：编辑器 -->
       <template v-if="hasActiveNote && noteStore.activeNote">
-        <!-- 顶部：标题 + 元信息 -->
+        <!-- 顶部：可编辑标题 + 元信息 -->
         <div class="shrink-0 border-b border-slate-200/60 bg-white px-8 py-4">
-          <h1 class="text-xl font-semibold text-slate-800">
-            {{ noteStore.activeNote.title || t("note.editor.placeholder") }}
-          </h1>
+          <NInput
+            ref="titleInputRef"
+            v-model:value="draftTitle"
+            :placeholder="t('note.editor.placeholder')"
+            :border="false"
+            size="large"
+            class="note-title-input"
+            @blur="handleSaveTitle"
+            @keydown.enter="($event.target as HTMLElement).blur()"
+          />
           <div class="mt-2">
-            <NoteMetaBar :note="noteStore.activeNote" :category-name="activeCategoryName" />
+            <NoteMetaBar
+              :note="noteStore.activeNote"
+              :category-name="activeCategoryName"
+              :saving="isSaving"
+              @save="handleSaveNote"
+            />
           </div>
         </div>
 
         <!-- 编辑器主体 -->
-        <div class="flex-1 overflow-hidden bg-white p-6">
+        <div class="flex-1 overflow-hidden bg-white px-6 pb-6 pt-0">
           <NoteEditor
-            :model-value="noteStore.activeNote.content"
+            :model-value="draftContent"
             height="100%"
             @update:model-value="handleEditorChange"
           />
@@ -287,12 +462,26 @@ const handleEditorChange = (_value: string) => {
       :parent-name="newCategoryParent?.name"
       @confirm="handleConfirmCreateCategory"
     />
-
-    <!-- 新建笔记 -->
-    <CreateNoteDialog
-      v-model:show="showCreateNote"
-      :category-name="activeCategoryName"
-      @confirm="handleConfirmCreateNote"
-    />
   </div>
 </template>
+
+<style scoped>
+/* 拖拽把手：两栏之间各放一个，4px 宽，hover/拖拽中变蓝 */
+.resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background-color 0.15s;
+}
+.resize-handle:hover,
+.resize-handle:active {
+  background-color: #2080f0;
+}
+/* 笔记标题输入框：去掉默认边框，看起来像普通标题 */
+.note-title-input :deep(.n-input__input) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+</style>

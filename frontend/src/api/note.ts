@@ -37,3 +37,18 @@ export const createNote = async (payload: CreateNotePayload): Promise<Note | nul
     }
     return null;
 };
+
+/**
+ * 更新笔记（部分更新）
+ * id 必传；title、content、notebook_id、is_pinned、sort_order 可选
+ */
+export const updateNote = async (
+    id: number,
+    payload: Partial<Pick<Note, "title" | "content" | "notebook_id" | "is_pinned" | "sort_order">>,
+): Promise<Note | null> => {
+    const res = await req.post<ApiResult<Note>>("/api/user/notebook/note/update", { id, ...payload });
+    if (res.data?.code === 200) {
+        return res.data.data;
+    }
+    return null;
+};
