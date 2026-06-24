@@ -9,8 +9,9 @@
  * 右键笔记项可弹出 NoteContextMenu 菜单，调用 store action
  * 完成移入回收站 / 置顶笔记（智能切换），列表自动刷新。
  */
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { NInput, NSpin, useMessage } from "naive-ui";
+import { VueDraggable } from "vue-draggable-plus";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import NoteListItem from "@/components/note/NoteListItem.vue";
@@ -38,12 +39,57 @@ const emit = defineEmits<{
 /** 搜索关键词 */
 const keyword = ref("");
 
-/** 过滤后的笔记列表（标题模糊匹配） */
+/**
+ * 本地笔记列表（可被 VueDraggable 直接 mutate）
+ * 通过 watch 与 props.notes 保持同步，拖拽完成后用后端返回数据覆盖
+ */
+const localNotes = ref<Note[]>([]);
+
+watch(
+    () => props.notes,
+    (newNotes) => {
+        localNotes.value = [...newNotes];
+    },
+    { immediate: true },
+);
+
+/** 过滤后的笔记列表（标题模糊匹配，基于 localNotes） */
 const filteredNotes = computed(() => {
     const kw = keyword.value.trim().toLowerCase();
-    if (!kw) return props.notes;
-    return props.notes.filter((n) => n.title.toLowerCase().includes(kw));
+    if (!kw) return localNotes.value;
+    return localNotes.value.filter((n) => n.title.toLowerCase().includes(kw));
 });
+
+/**
+ * 是否允许拖拽排序
+ * 条件：无搜索关键词 + 列表非空 + 所有笔记同属一个 notebook（非聚合视图）
+ */
+const canDrag = computed(() => {
+    if (keyword.value.trim()) return false;
+    if (localNotes.value.length === 0) return false;
+    const notebookId = localNotes.value[0].notebook_id;
+    return localNotes.value.every((n) => n.notebook_id === notebookId);
+});
+
+/**
+ * 拖拽结束回调
+ * VueDraggable 已将新顺序写入 localNotes，据此构建 items 调用后端排序接口
+ * 用后端返回的列表覆盖本地缓存，保证与服务端排序口径一致（置顶优先等）
+ */
+const onDragEnd = async () => {
+    const items = localNotes.value.map((n, idx) => ({
+        id: n.id,
+        sort_order: idx,
+    }));
+    const result = await noteStore.sortNotes(items);
+    if (result) {
+        message.success(t("note.sort.success"));
+    } else {
+        // 排序失败：回退本地顺序
+        localNotes.value = [...props.notes];
+        message.error(t("note.sort.failed"));
+    }
+};
 
 // ==================== 右键菜单状态 ====================
 
@@ -110,7 +156,28 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
     <div class="flex-1 overflow-y-auto bg-[#f7f8fa] p-3">
       <NSpin v-if="loading" class="block py-12" />
 
-      <!-- 列表 -->
+      <!-- 可拖拽列表：无搜索 + 同分类时启用 -->
+      <VueDraggable
+        v-else-if="canDrag && localNotes.length > 0"
+        v-model="localNotes"
+        class="space-y-2"
+        :animation="150"
+        :handle="'.drag-handle'"
+        :disabled="noteStore.loading.save"
+        @end="onDragEnd"
+      >
+        <NoteListItem
+          v-for="note in localNotes"
+          :key="note.id"
+          :note="note"
+          :active="activeId === note.id"
+          :draggable="!note.is_pinned"
+          @select="(id: number) => emit('select', id)"
+          @contextmenu="handleContextMenu"
+        />
+      </VueDraggable>
+
+      <!-- 普通列表：搜索中或聚合视图时不可拖拽 -->
       <div v-else-if="filteredNotes.length > 0" class="space-y-2">
         <NoteListItem
           v-for="note in filteredNotes"

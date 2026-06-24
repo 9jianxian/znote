@@ -19,7 +19,7 @@ import {
     userInfo,
 } from "@/api/user";
 import { listNotebooks, getTopLevelNotebooks, createNotebook, updateNotebook } from "@/api/notebook";
-import { listNotes, createNote, updateNote, deleteNote } from "@/api/note";
+import { listNotes, createNote, updateNote, deleteNote, sortNotes } from "@/api/note";
 import { verifyApiToken } from "@/middleware/auth";
 import type { AppVariables } from "@/types";
 
@@ -80,6 +80,7 @@ userRouter.get("/notebook/note/list", listNotes);
 userRouter.post("/notebook/note/create", createNote);
 userRouter.post("/notebook/note/update", updateNote);
 userRouter.post("/notebook/note/delete", deleteNote);
+userRouter.post("/notebook/note/sort", sortNotes);
 
 adminRouter.get("/app_info", getAppInfo);
 adminRouter.get("/list_users", listUsers);

@@ -57,3 +57,11 @@ export interface CreateNotePayload {
     is_pinned?: number;
     sort_order?: number;
 }
+
+/** 批量排序笔记的单项参数 */
+export interface SortNoteItem {
+    /** 笔记 ID */
+    id: number;
+    /** 排序值 */
+    sort_order: number;
+}

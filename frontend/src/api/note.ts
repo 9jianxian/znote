@@ -5,7 +5,7 @@
  * 笔记的增删改查都基于 notebook_id（分类 id）。
  */
 import req from "@/utils/req";
-import type { CreateNotePayload, Note } from "@/types/note";
+import type { CreateNotePayload, Note, SortNoteItem } from "@/types/note";
 
 interface ApiResult<T> {
     code: number;
@@ -61,6 +61,20 @@ export const deleteNote = async (id: number): Promise<Note | null> => {
     const res = await req.post<ApiResult<Note>>("/api/user/notebook/note/delete", { id });
     if (res.data?.code === 200) {
         return res.data.data;
+    }
+    return null;
+};
+
+/**
+ * 批量排序笔记（同分类内拖动排序）
+ * 前端传全量 items，后端事务更新后返回该分类排序后的笔记列表
+ * @param items 笔记 id 及对应排序值
+ * @returns 更新后的笔记列表（失败返回 null）
+ */
+export const sortNotes = async (items: SortNoteItem[]): Promise<Note[] | null> => {
+    const res = await req.post<ApiResult<Note[]>>("/api/user/notebook/note/sort", { items });
+    if (res.data?.code === 200) {
+        return res.data.data ?? [];
     }
     return null;
 };

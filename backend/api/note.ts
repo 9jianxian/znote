@@ -260,3 +260,99 @@ export const deleteNote = async (c: Context) => {
         data: result,
     });
 };
+
+/**
+ * 批量排序笔记（同分类内拖动排序）
+ * 前端传全量 items: [{id, sort_order}]
+ * 后端从首个笔记推断 notebook_id，事务批量更新，返回该分类排序后的笔记列表
+ */
+export const sortNotes = async (c: Context) => {
+    const uid = Number(c.get("uid"));
+    const payload = await c.req.json();
+
+    const { items } = payload || {};
+
+    // 校验 items 非空数组
+    if (!Array.isArray(items) || items.length === 0) {
+        return c.json({
+            code: -1000,
+            msg: "note.sort.items_required",
+            data: null,
+        });
+    }
+
+    // 校验每个 item 的 id 和 sort_order 合法
+    for (const item of items) {
+        if (
+            !item ||
+            typeof item.id !== "number" ||
+            typeof item.sort_order !== "number" ||
+            !Number.isFinite(item.sort_order)
+        ) {
+            return c.json({
+                code: -1000,
+                msg: "note.sort.items_invalid",
+                data: null,
+            });
+        }
+    }
+
+    // 从首个笔记推断 notebook_id，同时校验归属当前用户
+    const firstNote = await db
+        .select({ notebook_id: schema.notes.notebook_id })
+        .from(schema.notes)
+        .where(and(
+            eq(schema.notes.id, items[0].id),
+            eq(schema.notes.user_id, uid),
+        ))
+        .get();
+
+    if (!firstNote) {
+        return c.json({
+            code: -1000,
+            msg: "note.sort.note_not_found",
+            data: null,
+        });
+    }
+
+    const notebookId = firstNote.notebook_id;
+
+    // 事务内批量更新 sort_order（带 user_id 防越权）
+    const now = new Date();
+    await db.transaction(async (tx) => {
+        for (const item of items) {
+            await tx
+                .update(schema.notes)
+                .set({
+                    sort_order: item.sort_order,
+                    updated_at: now,
+                })
+                .where(and(
+                    eq(schema.notes.id, item.id),
+                    eq(schema.notes.user_id, uid),
+                ));
+        }
+    });
+
+    // 返回该分类下排序后的笔记列表（排序口径与 listNotes 一致）
+    const notes = await db
+        .select()
+        .from(schema.notes)
+        .where(and(
+            eq(schema.notes.user_id, uid),
+            eq(schema.notes.notebook_id, notebookId),
+            eq(schema.notes.is_deleted, 0),
+        ))
+        .orderBy(
+            desc(schema.notes.is_pinned),
+            asc(schema.notes.sort_order),
+            desc(schema.notes.created_at),
+        )
+        .all();
+
+    return c.json({
+        code: 200,
+        msg: "note.sort.success",
+        data: notes,
+    });
+};

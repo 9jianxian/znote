@@ -12,12 +12,14 @@ import type { Note } from "@/types/note";
 const props = defineProps<{
     note: Note;
     active: boolean;
+    /** 是否可拖拽（显示拖拽把手）。置顶笔记由父组件传 false 隐藏把手 */
+    draggable?: boolean;
 }>();
 
 const emit = defineEmits<{
     (e: "select", id: number): void;
     /** 右键笔记时触发，附带鼠标坐标用于菜单定位 */
-    (e: "contextmenu", note: Note, e: MouseEvent): void;
+    (e: "contextmenu", note: Note, evt: MouseEvent): void;
 }>();
 
 /** 摘要：取 content 纯文本前 80 字符 */
@@ -47,7 +49,7 @@ const isPinned = computed(() => props.note.is_pinned === 1);
 
 <template>
   <div
-    class="cursor-pointer rounded-lg border px-3 py-2.5 transition"
+    class="group flex cursor-pointer items-start gap-1 rounded-lg border px-3 py-2.5 transition"
     :class="
       active
         ? 'border-blue-400 bg-blue-50/50 shadow-sm'
@@ -56,31 +58,42 @@ const isPinned = computed(() => props.note.is_pinned === 1);
     @click="emit('select', note.id)"
     @contextmenu.prevent="(e: MouseEvent) => emit('contextmenu', note, e)"
   >
-    <!-- 标题行：标题 + 置顶标记 -->
-    <div class="flex items-center gap-1.5">
-      <ZIcon
-        v-if="isPinned"
-        name="ri:pushpin-2-line"
-        :size="14"
-        color="#f59e0b"
-        class="shrink-0"
-      />
-      <h3
-        class="flex-1 truncate text-sm font-medium"
-        :class="active ? 'text-blue-700' : 'text-slate-800'"
-      >
-        {{ note.title || "（无标题）" }}
-      </h3>
+    <!-- 拖拽把手：仅 draggable 为 true 时显示，hover 卡片时出现 -->
+    <div
+      v-if="draggable"
+      class="drag-handle mt-0.5 shrink-0 cursor-grab opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+    >
+      <ZIcon name="ri:draggable" :size="14" color="#94a3b8" />
     </div>
 
-    <!-- 摘要：始终占一行高度，保证卡片高度一致 -->
-    <p class="mt-1 line-clamp-1 text-xs text-slate-500">
-      {{ summary || "\u00A0" }}
-    </p>
+    <!-- 内容区 -->
+    <div class="min-w-0 flex-1">
+      <!-- 标题行：标题 + 置顶标记 -->
+      <div class="flex items-center gap-1.5">
+        <ZIcon
+          v-if="isPinned"
+          name="ri:pushpin-2-line"
+          :size="14"
+          color="#f59e0b"
+          class="shrink-0"
+        />
+        <h3
+          class="flex-1 truncate text-sm font-medium"
+          :class="active ? 'text-blue-700' : 'text-slate-800'"
+        >
+          {{ note.title || "（无标题）" }}
+        </h3>
+      </div>
 
-    <!-- 时间 -->
-    <div class="mt-1.5 text-[11px] text-slate-400">
-      {{ formatTime(note.updated_at) }}
+      <!-- 摘要：始终占一行高度，保证卡片高度一致 -->
+      <p class="mt-1 line-clamp-1 text-xs text-slate-500">
+        {{ summary || "\u00A0" }}
+      </p>
+
+      <!-- 时间 -->
+      <div class="mt-1.5 text-[11px] text-slate-400">
+        {{ formatTime(note.updated_at) }}
+      </div>
     </div>
   </div>
 </template>

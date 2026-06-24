@@ -10,7 +10,7 @@
 import { defineStore } from "pinia";
 import * as notebookApi from "@/api/notebook";
 import * as noteApi from "@/api/note";
-import type { CreateNotebookPayload, CreateNotePayload, Note, Notebook, NotebookNode } from "@/types/note";
+import type { CreateNotebookPayload, CreateNotePayload, Note, Notebook, NotebookNode, SortNoteItem } from "@/types/note";
 
 interface LoadingState {
     tree: boolean;     // 笔记本树加载中
@@ -374,6 +374,32 @@ export const useNoteStore = defineStore("note", {
                     // 若删除的是当前激活笔记，清空选中（第三栏回到空态）
                     if (this.activeNoteId === id) {
                         this.selectNote(null);
+                    }
+                }
+                return result;
+            } finally {
+                this.loading.save = false;
+            }
+        },
+
+        /**
+         * 批量排序笔记（同分类内拖动排序）
+         * 前端传全量 items，后端事务更新后返回该分类排序后的笔记列表
+         * 用返回数据覆盖对应分类的本地缓存
+         * @param items 笔记 id 及对应排序值
+         */
+        async sortNotes(items: SortNoteItem[]) {
+            this.loading.save = true;
+            try {
+                const result = await noteApi.sortNotes(items);
+                if (result) {
+                    // 后端返回的列表属于同一分类，找出 notebook_id 后覆盖本地缓存
+                    const notebookId = result[0]?.notebook_id;
+                    if (notebookId !== undefined) {
+                        this.notesByCategory = {
+                            ...this.notesByCategory,
+                            [notebookId]: result,
+                        };
                     }
                 }
                 return result;
