@@ -466,17 +466,13 @@ const handleSaveTitle = async () => {
 </template>
 
 <style scoped>
-/* 拖拽把手：两栏之间各放一个，4px 宽，hover/拖拽中变蓝 */
+/* 拖拽把手：两栏之间各放一个，4px 宽
+   视觉完全透明，仅靠 cursor: col-resize 提示可拖拽 */
 .resize-handle {
-  width: 4px;
+  width: 0px;
   cursor: col-resize;
   flex-shrink: 0;
   background: transparent;
-  transition: background-color 0.15s;
-}
-.resize-handle:hover,
-.resize-handle:active {
-  background-color: #2080f0;
 }
 /* 笔记标题输入框：去掉默认边框，看起来像普通标题 */
 .note-title-input :deep(.n-input__input) {
