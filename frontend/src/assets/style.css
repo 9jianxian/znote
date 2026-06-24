@@ -49,4 +49,23 @@
 .editor-wrapper{
     background-color: #fff !important;
     border:0px !important;
+    border-radius: 8px !important;
+}
+.vditor-reset{
+    padding:0 36px 0 36px !important;
+    background-color: #FAFBFC !important;
+}
+.vditor{
+    border-left-width: 0px !important;
+    border-right-width: 0px !important;
+    border-bottom-width: 0px !important;
+    border-radius: 8px !important;
+    border:0px !important;
+    
+}
+
+.vditor-toolbar{
+    border: 0px !important;
+    padding-left:0px !important; 
+    /*border-top-width: 0px !important;*/
 }

@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
@@ -35,7 +35,8 @@ const checkNoteOwnership = async (noteId: number, userId: number) => {
 
 /**
  * 获取指定分类下的笔记列表
- * notebook_id 必传，只查未删除的笔记，按 sort_order 排序
+ * notebook_id 必传，只查未删除的笔记
+ * 排序规则：置顶在前(is_pinned DESC) → sort_order 升序 → 创建时间降序
  */
 export const listNotes = async (c: Context) => {
     const uid = Number(c.get("uid"));
@@ -68,7 +69,11 @@ export const listNotes = async (c: Context) => {
             eq(schema.notes.notebook_id, notebookId),
             eq(schema.notes.is_deleted, 0),
         ))
-        .orderBy(schema.notes.sort_order)
+        .orderBy(
+            desc(schema.notes.is_pinned),
+            asc(schema.notes.sort_order),
+            desc(schema.notes.created_at),
+        )
         .all();
 
     return c.json({

@@ -117,7 +117,8 @@ export const useNoteStore = defineStore("note", {
 
         /**
          * 第二栏展示用：当前选中分类下的"聚合"笔记列表
-         * 包含该节点及所有后代分类的笔记，去重后按"置顶+更新时间"排序
+         * 包含该节点及所有后代分类的笔记，去重后按"置顶+sort_order+创建时间"排序
+         * 与后端 listNotes 排序口径保持一致（聚合后需在此重新排序）
          */
         displayedNotes(state): Note[] {
             if (state.activeCategoryId === null) return [];
@@ -144,10 +145,12 @@ export const useNoteStore = defineStore("note", {
                 });
             });
 
-            // 排序：置顶在前，再按更新时间倒序
+            // 排序：置顶在前 → sort_order 升序 → 创建时间倒序
+            // 注意：用 created_at 而非 updated_at，避免修改笔记导致位置跳动
             return Array.from(merged.values()).sort((a, b) => {
-                if (a.is_pinned !== b.is_pinned) return b.is_pinned - a.is_pinned;
-                return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+                if (a.is_pinned !== b.is_pinned) return b.is_pinned - a.is_pinned;            // 置顶在前
+                if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;       // sort_order 升序
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // 创建时间倒序
             });
         },
     },
