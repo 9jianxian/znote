@@ -11,7 +11,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NInput, NSpin, useMessage } from "naive-ui";
+import { NSpin, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import ZIcon from "@/components/DynamicIcon.vue";
 import UserHeader from "@/components/note/UserHeader.vue";
@@ -50,7 +50,7 @@ const draftContent = ref("");
 /** 保存按钮 loading 态 */
 const isSaving = ref(false);
 /** 标题输入框 ref（用于自动聚焦） */
-const titleInputRef = ref<InstanceType<typeof NInput> | null>(null);
+const titleInputRef = ref<HTMLInputElement | null>(null);
 
 // ==================== 侧边栏可调宽度 ====================
 
@@ -402,13 +402,12 @@ const handleSaveTitle = async () => {
       <!-- 选中笔记时：编辑器 -->
       <template v-if="hasActiveNote && noteStore.activeNote">
         <!-- 顶部：可编辑标题 + 元信息 -->
-        <div class="shrink-0 border-b border-slate-200/60 bg-white px-8 py-4">
-          <NInput
+        <div class="shrink-0 bg-white px-8 py-4">
+          <input
             ref="titleInputRef"
-            v-model:value="draftTitle"
+            v-model="draftTitle"
             :placeholder="t('note.editor.placeholder')"
-            :border="false"
-            size="large"
+            type="text"
             class="note-title-input"
             @blur="handleSaveTitle"
             @keydown.enter="($event.target as HTMLElement).blur()"
@@ -474,10 +473,21 @@ const handleSaveTitle = async () => {
   flex-shrink: 0;
   background: transparent;
 }
-/* 笔记标题输入框：去掉默认边框，看起来像普通标题 */
-.note-title-input :deep(.n-input__input) {
-  font-size: 1.25rem;
-  font-weight: 600;
+/* 笔记标题输入框：原生 input，无边框无内边距，适合标题大小 */
+.note-title-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.4;
   color: #1e293b;
+}
+.note-title-input::placeholder {
+  color: #cbd5e1;
+  font-weight: 600;
 }
 </style>
