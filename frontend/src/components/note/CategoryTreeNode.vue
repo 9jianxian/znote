@@ -138,9 +138,9 @@ const onChildDragEnd = async () => {
       <!-- 节点标题 -->
       <span class="flex-1 truncate">{{ node.title }}</span>
 
-      <!-- 悬停时显示的"新建子分类"按钮 -->
+      <!-- 悬停时显示的"新建子分类"按钮（排除顶级笔记本，子分类最多三级） -->
       <button
-        v-show="hovered"
+        v-show="hovered && level < 2"
         class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-blue-500/20 hover:text-blue-300"
         :title="t('note.category.add_child')"
         @click="handleAddChild"
