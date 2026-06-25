@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { checkNotebookOwnership, checkNoteOwnership } from "@/utils/ownership";
@@ -118,6 +118,12 @@ export const createNote = async (c: Context) => {
 /**
  * 更新笔记
  * id 必传；title、content、notebook_id、is_pinned、sort_order 可选（部分更新）
+ *
+ * 历史版本机制：
+ * - 仅当 title 或 content 实际变化时，才把旧值存一条快照（置顶/排序/移动分类不产生版本）
+ * - 版本号 = 同一 note 当前最大 version_no + 1
+ * - 单次更新后若该 note 版本数超过 50，删除最早的，仅保留最近 50 条
+ * - 存快照与更新笔记在同一事务内，保证原子性
  */
 export const updateNote = async (c: Context) => {
     const uid = Number(c.get("uid"));
@@ -134,9 +140,17 @@ export const updateNote = async (c: Context) => {
         });
     }
 
-    // 校验笔记属于当前用户
-    const noteExists = await checkNoteOwnership(id, uid);
-    if (!noteExists) {
+    // 取当前笔记旧值，同时校验归属（user_id 条件防越权，一次查询兼得旧值与权限校验）
+    const oldNote = await db
+        .select({ title: schema.notes.title, content: schema.notes.content })
+        .from(schema.notes)
+        .where(and(
+            eq(schema.notes.id, id),
+            eq(schema.notes.user_id, uid),
+        ))
+        .get();
+
+    if (!oldNote) {
         return c.json({
             code: -1000,
             msg: "note.update.not_found",
@@ -164,15 +178,55 @@ export const updateNote = async (c: Context) => {
     if (is_pinned !== undefined) updates.is_pinned = is_pinned;
     if (sort_order !== undefined) updates.sort_order = sort_order;
 
-    const result = await db
-        .update(schema.notes)
-        .set(updates)
-        .where(and(
-            eq(schema.notes.id, id),
-            eq(schema.notes.user_id, uid),
-        ))
-        .returning()
-        .get();
+    // 仅当 title 或 content 实际变化时才生成历史版本
+    const titleChanged = title !== undefined && title.trim() !== oldNote.title;
+    const contentChanged = content !== undefined && content !== oldNote.content;
+    const needVersion = titleChanged || contentChanged;
+
+    // 事务：存历史快照（可选）→ 更新笔记，保证原子性
+    const result = await db.transaction(async (tx) => {
+        if (needVersion) {
+            // 版本号 = 当前最大 version_no + 1（单用户无协作，事务内安全）
+            const maxRow = await tx
+                .select({ maxNo: sql<number>`MAX(${schema.noteVersions.version_no})` })
+                .from(schema.noteVersions)
+                .where(eq(schema.noteVersions.note_id, id))
+                .get();
+            const nextVersionNo = (maxRow?.maxNo ?? 0) + 1;
+
+            // 存旧值快照
+            await tx.insert(schema.noteVersions).values({
+                note_id: id,
+                user_id: uid,
+                title: oldNote.title,
+                content: oldNote.content,
+                version_no: nextVersionNo,
+            });
+
+            // 保留最近 50 个版本，删除多余的（按 version_no 倒序取前 50，其余删除）
+            await tx.run(sql`
+                DELETE FROM note_versions
+                WHERE note_id = ${id}
+                  AND id NOT IN (
+                      SELECT id FROM note_versions
+                      WHERE note_id = ${id}
+                      ORDER BY version_no DESC
+                      LIMIT 50
+                  )
+            `);
+        }
+
+        // 更新笔记
+        return await tx
+            .update(schema.notes)
+            .set(updates)
+            .where(and(
+                eq(schema.notes.id, id),
+                eq(schema.notes.user_id, uid),
+            ))
+            .returning()
+            .get();
+    });
 
     return c.json({
         code: 200,

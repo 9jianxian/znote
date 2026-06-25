@@ -85,6 +85,24 @@ export const notes = sqliteTable("notes", {
     index("idx_notes_user_pinned").on(table.user_id, table.is_pinned),               // 置顶笔记查询
 ]);
 
+/**
+ * 笔记历史版本（快照式）
+ * 每次更新笔记前，若 title/content 实际变化，将旧值存一条快照
+ * 同一 note 最多保留 50 条，超出按 version_no 删除最早的
+ */
+export const noteVersions = sqliteTable("note_versions", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    note_id: integer("note_id").notNull(),                                            // 关联笔记
+    user_id: integer("user_id").notNull(),                                            // 所属用户（权限校验/过滤）
+    title: text("title").notNull(),                                                   // 标题快照（旧值）
+    content: text("content").notNull(),                                               // 内容快照（旧值）
+    version_no: integer("version_no").notNull(),                                      // 版本号（同一 note 内递增）
+    created_at: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+}, (table) => [
+    index("idx_note_versions_note").on(table.note_id),                                // 按笔记查历史
+    index("idx_note_versions_user").on(table.user_id),                                // 按用户过滤
+]);
+
 // ==================== 标签（预留） ====================
 
 /**
