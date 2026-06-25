@@ -5,7 +5,7 @@
  * 笔记的增删改查都基于 notebook_id（分类 id）。
  */
 import req from "@/utils/req";
-import type { CreateNotePayload, Note, SortNoteItem } from "@/types/note";
+import type { CreateNotePayload, Note, NoteVersion, NoteVersionItem, SortNoteItem } from "@/types/note";
 
 interface ApiResult<T> {
     code: number;
@@ -92,6 +92,36 @@ export const searchNotes = async (notebookId: number, keyword: string): Promise<
     });
     if (res.data?.code === 200) {
         return res.data.data ?? [];
+    }
+    return null;
+};
+
+/**
+ * 获取笔记的历史版本列表（仅轻量字段，不含 content）
+ * @param noteId 笔记 ID
+ * @returns 版本列表（按版本号倒序，最多 50 条），失败返回 null
+ */
+export const fetchNoteVersions = async (noteId: number): Promise<NoteVersionItem[] | null> => {
+    const res = await req.get<ApiResult<NoteVersionItem[]>>("/api/user/note/versions", {
+        params: { note_id: noteId },
+    });
+    if (res.data?.code === 200) {
+        return res.data.data ?? [];
+    }
+    return null;
+};
+
+/**
+ * 获取单个历史版本详情（含 title/content）
+ * @param versionId 版本 ID
+ * @returns 版本详情，失败返回 null
+ */
+export const fetchNoteVersion = async (versionId: number): Promise<NoteVersion | null> => {
+    const res = await req.get<ApiResult<NoteVersion>>("/api/user/note/version", {
+        params: { version_id: versionId },
+    });
+    if (res.data?.code === 200) {
+        return res.data.data;
     }
     return null;
 };

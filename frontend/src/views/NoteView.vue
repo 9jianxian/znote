@@ -24,6 +24,7 @@ import CreateNotebookDialog from "@/components/note/dialogs/CreateNotebookDialog
 import ImportDialog from "@/components/note/dialogs/ImportDialog.vue";
 import MoveDialog from "@/components/note/dialogs/MoveDialog.vue";
 import DeleteNotebookDialog from "@/components/note/dialogs/DeleteNotebookDialog.vue";
+import VersionHistoryDialog from "@/components/note/dialogs/VersionHistoryDialog.vue";
 import CategoryContextMenu from "@/components/note/CategoryContextMenu.vue";
 import { useNoteStore } from "@/stores/note";
 import { useUserStore } from "@/stores/user";
@@ -86,6 +87,11 @@ const moveSourceName = ref("");
 const moveExcludeIds = ref<number[]>([]);
 /** 当前所在分类 ID（高亮标记） */
 const moveCurrentCategoryId = ref<number | null>(null);
+
+// ==================== 历史版本抽屉 ====================
+
+/** 历史版本抽屉显隐 */
+const showVersionHistory = ref(false);
 
 /**
  * 递归收集节点的所有子孙 id（用于构建排除列表）
@@ -557,6 +563,7 @@ const handleSaveTitle = async () => {
               :category-name="activeCategoryName"
               :saving="isSaving"
               @save="handleSaveNote"
+              @history="showVersionHistory = true"
             />
           </div>
         </div>
@@ -653,6 +660,12 @@ const handleSaveTitle = async () => {
     <ImportDialog
       v-model:show="showImportDialog"
       :notebook-id="noteStore.activeNotebookId"
+    />
+
+    <!-- 历史版本抽屉 -->
+    <VersionHistoryDialog
+      v-model:show="showVersionHistory"
+      :note-id="noteStore.activeNoteId"
     />
   </div>
 </template>

@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: "save"): void;
+    (e: "history"): void;
 }>();
 
 /** 格式化时间：年/月/日 时:分:秒 */
@@ -65,15 +66,28 @@ const updatedText = computed(() => formatTime(props.note.updated_at));
       </div>
     </div>
 
-    <!-- 右侧：保存按钮 -->
-    <button
-      class="flex shrink-0 items-center gap-1.5 rounded-md bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-      :disabled="saving"
-      @click="emit('save')"
-    >
-      <ZIcon v-if="!saving" name="ri:save-line" :size="14" color="currentColor" />
-      <ZIcon v-else name="ri:loader-4-line" :size="14" color="currentColor" class="animate-spin" />
-      <span>{{ saving ? t("note.editor.saving") : t("note.editor.save") }}</span>
-    </button>
+    <!-- 右侧：历史按钮 + 保存按钮 -->
+    <div class="flex shrink-0 items-center gap-2">
+      <!-- 历史版本按钮（次级样式，点击打开历史抽屉） -->
+      <button
+        class="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
+        type="button"
+        @click="emit('history')"
+      >
+        <ZIcon name="ri:history-line" :size="14" color="currentColor" />
+        <span>{{ t("note.version.button") }}</span>
+      </button>
+
+      <!-- 保存按钮 -->
+      <button
+        class="flex items-center gap-1.5 rounded-md bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="saving"
+        @click="emit('save')"
+      >
+        <ZIcon v-if="!saving" name="ri:save-line" :size="14" color="currentColor" />
+        <ZIcon v-else name="ri:loader-4-line" :size="14" color="currentColor" class="animate-spin" />
+        <span>{{ saving ? t("note.editor.saving") : t("note.editor.save") }}</span>
+      </button>
+    </div>
   </div>
 </template>

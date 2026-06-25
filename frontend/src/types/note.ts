@@ -82,3 +82,17 @@ export interface DeleteNotebookResult {
     deleted_notebooks: number;
     deleted_notes: number;
 }
+
+/** 历史版本列表项（轻量，不含 content） */
+export interface NoteVersionItem {
+    id: number;
+    version_no: number;
+    created_at: number | string;
+}
+
+/** 历史版本详情（含 title/content） */
+export interface NoteVersion extends NoteVersionItem {
+    note_id: number;
+    title: string;
+    content: string;
+}
