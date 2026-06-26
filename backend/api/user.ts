@@ -126,7 +126,7 @@ export const register = async (c: Context) => {
         data: {
             ...user,
             token,
-            redirect: "/dashboard/home",
+            redirect: "/app",
         },
     });
 };
@@ -181,8 +181,7 @@ export const login = async (c: Context) => {
     }
 
     const token = await createSession(user.id, user.role, c);
-    const userSettings = await getUserSettingValue(user.id);
-    const redirect = userSettings.dashboard_home === "templates" ? "/dashboard/templates" : "/dashboard/home";
+    const redirect = "/app";
 
     return c.json({
         code: 200,

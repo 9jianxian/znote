@@ -39,7 +39,7 @@ const handleLogin = async () => {
         localStorage.setItem("token", result.data.token);
         message.success(t(result?.msg || "login.success"));
         window.setTimeout(() => {
-            router.push(result.data.redirect || "/dashboard/home");
+            router.push(result.data.redirect || "/app");
         }, 800);
     } catch {
         message.error(t("login.request.failed"));
