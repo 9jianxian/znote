@@ -103,33 +103,6 @@ export const noteVersions = sqliteTable("note_versions", {
     index("idx_note_versions_user").on(table.user_id),                                // 按用户过滤
 ]);
 
-// ==================== 标签（预留） ====================
-
-/**
- * 标签库
- * 每个用户独立的标签空间，user_id + name 唯一
- */
-export const tags = sqliteTable("tags", {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    user_id: integer("user_id").notNull(),                                          // 所属用户
-    name: text("name").notNull(),                                                    // 标签名
-    created_at: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
-}, (table) => [
-    index("idx_tags_user_id").on(table.user_id),
-    uniqueIndex("idx_tags_user_name").on(table.user_id, table.name),
-]);
-
-/**
- * 笔记-标签关联（多对多）
- * 复合主键 (note_id, tag_id)，同时为 tag_id 建索引支持反查
- */
-export const noteTags = sqliteTable("note_tags", {
-    note_id: integer("note_id").notNull(),                                          // 笔记 ID
-    tag_id: integer("tag_id").notNull(),                                            // 标签 ID
-}, (table) => [
-    index("idx_note_tags_tag").on(table.tag_id),                                    // 按标签查笔记
-    uniqueIndex("idx_note_tags_pair").on(table.note_id, table.tag_id),              // 防重复关联
-]);
 
 // ==================== 文件管理 ====================
 

@@ -1,7 +1,6 @@
 import type { Config } from "drizzle-kit";
-import { DB_FILE } from "./backend/path";
 
-const dbPath = DB_FILE;
+const dbPath = "./data/db/znote.db";
 
 export default {
     schema: "./backend/db/schema.ts",
@@ -17,8 +16,6 @@ export default {
         "notebooks",
         "notes",
         "note_versions",
-        "tags",
-        "note_tags",
         "files",
     ],
     dbCredentials: {

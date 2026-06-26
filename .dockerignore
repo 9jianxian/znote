@@ -1,0 +1,12 @@
+.git/
+data/
+backend/
+frontend/
+node_modules/
+.env
+.gitignore
+.env.example
+build_frontend.sh
+*.md
+tsconfig.json
+compose.yaml
