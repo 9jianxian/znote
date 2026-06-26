@@ -152,3 +152,13 @@ export const fetchTrashNotes = async (): Promise<Note[]> => {
     }
     return [];
 };
+
+/**
+ * 彻底删除笔记（硬删除，不可恢复）
+ * @param id 笔记 id
+ * @returns 是否成功
+ */
+export const permanentDeleteNote = async (id: number): Promise<boolean> => {
+    const res = await req.post<ApiResult<null>>("/api/user/note/permanent_delete", { id });
+    return res.data?.code === 200;
+};

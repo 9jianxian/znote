@@ -215,6 +215,8 @@ export default {
     "note.context.trash.success": "已移入回收站",
     "note.context.pin.success": "已置顶",
     "note.context.unpin.success": "已取消置顶",
+    "note.context.permanent_delete": "彻底删除",
+    "note.context.permanent_delete.success": "已彻底删除",
     "note.move.title_note": "移动笔记",
     "note.move.title_category": "移动分类",
     "note.move.source": "正在移动",

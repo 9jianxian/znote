@@ -11,7 +11,7 @@
 import { defineStore } from "pinia";
 import * as notebookApi from "@/api/notebook";
 import * as noteApi from "@/api/note";
-import { fetchNoteById, fetchTrashNotes } from "@/api/note";
+import { fetchNoteById, fetchTrashNotes, permanentDeleteNote } from "@/api/note";
 import type { CreateNotebookPayload, CreateNotePayload, Note, Notebook, NotebookNode, SortNoteItem, SortNotebookItem } from "@/types/note";
 
 interface LoadingState {
@@ -736,6 +736,32 @@ export const useNoteStore = defineStore("note", {
                     }
                 }
                 return result;
+            } finally {
+                this.loading.save = false;
+            }
+        },
+
+        /**
+         * 彻底删除笔记（硬删除，不可恢复）
+         * 后端硬删笔记 + 历史版本 + 关联文件，前端从回收站列表和缓存中移除
+         */
+        async permanentDeleteNote(id: number) {
+            this.loading.save = true;
+            try {
+                const ok = await permanentDeleteNote(id);
+                if (ok) {
+                    // 从回收站列表中移除
+                    this.trashNotes = this.trashNotes.filter((n) => n.id !== id);
+                    // 同时从分类缓存中移除（防止脏数据）
+                    for (const cid of Object.keys(this.notesByCategory)) {
+                        this.notesByCategory[Number(cid)] = this.notesByCategory[Number(cid)].filter((n) => n.id !== id);
+                    }
+                    // 若删除的是当前激活笔记，清空选中
+                    if (this.activeNoteId === id) {
+                        this.selectNote(null);
+                    }
+                }
+                return ok;
             } finally {
                 this.loading.save = false;
             }

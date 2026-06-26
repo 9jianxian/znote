@@ -195,6 +195,11 @@ const handleMenuSelect = async (action: NoteContextAction, note: Note) => {
         message.success(t("note.context.trash.success"));
         return;
     }
+    if (action === "permanent_delete") {
+        await noteStore.permanentDeleteNote(note.id);
+        message.success(t("note.context.permanent_delete.success"));
+        return;
+    }
     if (action === "move") {
         moveNote.value = note;
         showMoveDialog.value = true;

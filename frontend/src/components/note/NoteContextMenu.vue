@@ -17,7 +17,7 @@ import ZIcon from "@/components/DynamicIcon.vue";
 import type { Note } from "@/types/note";
 
 /** 右键菜单可触发的操作 */
-export type NoteContextAction = "trash" | "pin" | "move" | "open_new_window";
+export type NoteContextAction = "trash" | "pin" | "move" | "open_new_window" | "permanent_delete";
 
 const props = defineProps<{
     /** 菜单是否显示 */
@@ -72,12 +72,17 @@ const menuOptions = computed(() => {
             key: "trash",
             icon: () => h(ZIcon, { name: "ri:delete-bin-line", size: 16 }),
         },
-    ].filter((item) => !(isDeleted && (item.key === "trash" || item.key === "open_new_window" || item.key === "pin")));
+        {
+            label: t("note.context.permanent_delete"),
+            key: "permanent_delete",
+            icon: () => h(ZIcon, { name: "ri:delete-bin-6-fill", size: 16, color: "#e74c3c" }),
+        },
+    ].filter((item) => !(isDeleted && (item.key === "trash" || item.key === "open_new_window" || item.key === "pin")) && !(!isDeleted && item.key === "permanent_delete"));
 });
 
 /** NDropdown 选中某项时：转发给父组件处理，并关闭菜单 */
 const handleSelect = (key: string) => {
-    if (props.note && (key === "trash" || key === "pin" || key === "move" || key === "open_new_window")) {
+    if (props.note && (key === "trash" || key === "pin" || key === "move" || key === "open_new_window" || key === "permanent_delete")) {
         emit("select", key as NoteContextAction, props.note);
     }
     emit("update:show", false);

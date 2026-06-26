@@ -215,6 +215,8 @@ export default {
     "note.context.trash.success": "Moved to trash",
     "note.context.pin.success": "Pinned",
     "note.context.unpin.success": "Unpinned",
+    "note.context.permanent_delete": "Delete Permanently",
+    "note.context.permanent_delete.success": "Permanently deleted",
     "note.move.title_note": "Move Note",
     "note.move.title_category": "Move Category",
     "note.move.source": "Moving",
