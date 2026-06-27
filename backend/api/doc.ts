@@ -10,7 +10,7 @@ type DocTreeNode = {
     title: string;
     type: "notebook";
     children: DocTreeNode[];
-    notes: { id: number; title: string; type: "note" }[];
+    notes: { id: number; title: string; type: "note"; updated_at: Date }[];
 };
 
 /**

@@ -8,6 +8,7 @@ import { ref, watch, nextTick, onMounted, inject, type Ref } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { IncremarkContent, ThemeProvider } from "@incremark/vue";
+import type { DesignTokens } from "@incremark/theme";
 import "@incremark/theme/styles.css";
 import req from "@/utils/req";
 import ZIcon from "@/components/DynamicIcon.vue";
@@ -15,13 +16,15 @@ import ZIcon from "@/components/DynamicIcon.vue";
 /** 代码块主题：深色背景 + 亮色文字 */
 const codeTheme = {
     color: {
-        codeBlockBackground: "#1e293b",
-        codeBlockText: "#e2e8f0",
-        codeInlineBackground: "#334155",
-        codeInlineText: "#e2e8f0",
-        codeHeaderBackground: "#0f172a",
+        code: {
+            blockBackground: "#1e293b",
+            blockText: "#e2e8f0",
+            inlineBackground: "#334155",
+            inlineText: "#e2e8f0",
+            headerBackground: "#0f172a",
+        },
     },
-};
+} as Partial<DesignTokens>;
 
 const route = useRoute();
 const { t } = useI18n();

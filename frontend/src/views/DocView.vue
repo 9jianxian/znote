@@ -274,7 +274,7 @@ watch(activeNoteId, (newId) => {
 
     <!-- 移动端 TOC 浮动按钮（仅 <1280px 显示）-->
     <div class="xl:hidden">
-      <DocToc floating :key="activeNoteId" />
+      <DocToc floating :key="activeNoteId ?? undefined" />
     </div>
   </div>
 </template>
