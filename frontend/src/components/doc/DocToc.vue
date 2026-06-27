@@ -96,9 +96,9 @@ onUnmounted(() => {
   <!-- PC 端：固定在右侧栏 -->
   <aside
     v-if="!floating && hasHeadings"
-    class="hidden h-full flex-col border-l border-slate-200 bg-white xl:flex"
+    class="hidden h-full flex-col border-l border-slate-200/60 bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 xl:flex"
   >
-    <div class="sticky top-0 border-b border-slate-100 bg-white/80 px-4 py-3 backdrop-blur-sm">
+    <div class="sticky top-0 border-b border-slate-200/60 bg-transparent px-4 py-3 backdrop-blur-md">
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">{{ t("doc.toc.title") }}</span>
     </div>
     <nav class="flex-1 overflow-y-auto px-3 py-2">

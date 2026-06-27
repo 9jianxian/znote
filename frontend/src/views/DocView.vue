@@ -248,7 +248,7 @@ watch(activeNoteId, (newId) => {
         <!-- 面包屑 + 内容卡片统一居中 -->
         <div class="mx-auto max-w-4xl px-4 sm:px-6 pt-5">
           <DocBreadcrumb />
-          <div class="mb-4 rounded-2xl border border-slate-200/70 bg-white px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)] transition-shadow duration-200 hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
+          <div class="mb-4 rounded-2xl border border-slate-200/70 bg-white/90 px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)] transition-shadow duration-200 hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] backdrop-blur-sm">
             <router-view />
           </div>
           <!-- 版权信息 -->

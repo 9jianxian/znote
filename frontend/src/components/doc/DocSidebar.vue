@@ -51,9 +51,9 @@ const hasActiveNote = computed(() => activeNoteId.value !== null);
 </script>
 
 <template>
-  <aside class="flex h-full flex-col border-r border-slate-200 bg-white">
+  <aside class="flex h-full flex-col border-r border-slate-200/60 bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
     <!-- 搜索框 -->
-    <div class="sticky top-0 z-10 border-b border-slate-100 bg-white/80 p-3 backdrop-blur-sm">
+    <div class="sticky top-0 z-10 border-b border-slate-200/60 bg-transparent p-3 backdrop-blur-md">
       <div class="relative">
         <ZIcon name="ri:search-line" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
