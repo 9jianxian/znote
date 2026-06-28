@@ -156,24 +156,36 @@ export const importZip = async (c: Context) => {
                 const items = readdirSync(dir);
 
                 // 第一遍：递归创建子目录（notebooks）
+                // 复用策略：同 parent 下同名子分类直接复用其 id，避免重复创建
                 for (const name of items) {
                     const fullPath = join(dir, name);
                     let st;
                     try { st = statSync(fullPath); } catch { continue; }
                     if (st.isDirectory()) {
-                        const [nb] = await tx
-                            .insert(schema.notebooks)
-                            .values({
-                                user_id: uid,
-                                parent_id: parentDbId,
-                                title: name,
-                                description: "",
-                                sort_order: 0,
-                                created_at: st.mtime,
-                                updated_at: st.mtime,
-                            })
-                            .returning();
-                        await importDir(fullPath, nb.id);
+                        const existing = await tx
+                            .select({ id: schema.notebooks.id })
+                            .from(schema.notebooks)
+                            .where(and(
+                                eq(schema.notebooks.user_id, uid),
+                                eq(schema.notebooks.parent_id, parentDbId),
+                                eq(schema.notebooks.title, name),
+                            ))
+                            .get();
+                        const childId = existing
+                            ? existing.id
+                            : (await tx
+                                .insert(schema.notebooks)
+                                .values({
+                                    user_id: uid,
+                                    parent_id: parentDbId,
+                                    title: name,
+                                    description: "",
+                                    sort_order: 0,
+                                    created_at: st.mtime,
+                                    updated_at: st.mtime,
+                                })
+                                .returning())[0].id;
+                        await importDir(fullPath, childId);
                     }
                 }
 

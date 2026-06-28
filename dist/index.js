@@ -11641,7 +11641,8 @@ var importZip = async (c) => {
             continue;
           }
           if (st.isDirectory()) {
-            const [nb] = await tx.insert(notebooks).values({
+            const existing = await tx.select({ id: notebooks.id }).from(notebooks).where(and6(eq7(notebooks.user_id, uid), eq7(notebooks.parent_id, parentDbId), eq7(notebooks.title, name))).get();
+            const childId = existing ? existing.id : (await tx.insert(notebooks).values({
               user_id: uid,
               parent_id: parentDbId,
               title: name,
@@ -11649,8 +11650,8 @@ var importZip = async (c) => {
               sort_order: 0,
               created_at: st.mtime,
               updated_at: st.mtime
-            }).returning();
-            await importDir(fullPath, nb.id);
+            }).returning())[0].id;
+            await importDir(fullPath, childId);
           }
         }
         for (const name of items) {
