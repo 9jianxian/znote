@@ -5,7 +5,8 @@
  * 功能：
  * 1. 展示头像和昵称（无头像回退为首字母）
  * 2. 下拉菜单：修改密码、返回后台（仅管理员）、退出登录
- * 3. 通过事件与父组件通信，路由跳转由 NoteView 统一处理
+ * 3. 信息按钮：展示关于ZNote、反馈链接、帮助文档、交流群等信息
+ * 4. 通过事件与父组件通信，路由跳转由 NoteView 统一处理
  */
 import { computed, h, ref } from "vue";
 import { NDropdown } from "naive-ui";
@@ -13,12 +14,15 @@ import { useI18n } from "vue-i18n";
 import { useUserStore } from "@/stores/user";
 import ZIcon from "@/components/DynamicIcon.vue";
 import ChangePasswordDialog from "@/components/note/dialogs/ChangePasswordDialog.vue";
+import InfoDialog from "@/components/note/dialogs/InfoDialog.vue";
 
 const { t } = useI18n();
 const userStore = useUserStore();
 
 /** 修改密码弹窗显隐 */
 const showChangePassword = ref(false);
+/** 信息弹窗显隐 */
+const showInfoDialog = ref(false);
 
 const emit = defineEmits<{
     (e: "navigate", path: string): void;
@@ -81,27 +85,39 @@ const handleMenuSelect = (key: string) => {
 </script>
 
 <template>
-  <!-- 用户信息卡片：头像 + 昵称（点击头像展开下拉菜单） -->
+  <!-- 用户信息卡片：头像 + 昵称 + 信息按钮（头像和昵称点击展开下拉菜单） -->
   <div class="flex items-center gap-2.5 px-3 py-2.5">
-    <NDropdown :options="userMenuOptions" trigger="click" @select="handleMenuSelect">
-      <!-- 头像（无图时回退为首字母） -->
-      <div
-        class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white transition hover:ring-2 hover:ring-blue-400/60"
-      >
-        <img v-if="userStore.userInfo.avatar" :src="userStore.userInfo.avatar" class="h-full w-full object-cover" alt="avatar" />
-        <span v-else>{{ initial }}</span>
+    <NDropdown :options="userMenuOptions" trigger="click" placement="bottom-start" @select="handleMenuSelect">
+      <!-- 头像 + 昵称整体可点击 -->
+      <div class="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 transition">
+        <!-- 头像（无图时回退为首字母） -->
+        <div
+          class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white"
+        >
+          <img v-if="userStore.userInfo.avatar" :src="userStore.userInfo.avatar" class="h-full w-full object-cover" alt="avatar" />
+          <span v-else>{{ initial }}</span>
+        </div>
+        <!-- 昵称 -->
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-sm font-medium text-slate-100">
+            {{ userStore.userInfo.username || t("dashboard.user.fallback") }}
+          </div>
+        </div>
       </div>
     </NDropdown>
-    <div class="min-w-0 flex-1">
-      <div class="truncate text-sm font-medium text-slate-100">
-        {{ userStore.userInfo.username || t("dashboard.user.fallback") }}
-      </div>
-      <div class="truncate text-xs text-slate-400">
-        {{ userStore.userInfo.email || "" }}
-      </div>
-    </div>
+
+    <!-- 信息按钮 -->
+    <button
+      class="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-700/60 hover:text-slate-200"
+      :title="t('note.info.button')"
+      @click="showInfoDialog = true"
+    >
+      <ZIcon name="ri:information-line" :size="16" color="currentColor" />
+    </button>
 
     <!-- 修改密码弹窗 -->
     <ChangePasswordDialog v-model:show="showChangePassword" />
+    <!-- 信息弹窗 -->
+    <InfoDialog v-model:show="showInfoDialog" />
   </div>
 </template>
