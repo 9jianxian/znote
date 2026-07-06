@@ -90,14 +90,14 @@
                     <n-form-item :label="t('ai_setting.chat.base_url')" path="base_url">
                         <n-input
                             v-model:value="chatForm.base_url"
-                            :disabled="chatForm.provider === 'siliconflow'"
+                            :disabled="chatForm.provider === 'siliconflow' || chatForm.provider === 'deepseek'"
                             :placeholder="t('ai_setting.chat.base_url.placeholder')"
                         />
                     </n-form-item>
 
                     <n-form-item :label="t('ai_setting.chat.model')" path="model">
                         <n-select
-                            v-if="chatForm.provider === 'siliconflow'"
+                            v-if="chatForm.provider !== 'custom'"
                             v-model:value="chatForm.model"
                             :options="chatModelOptions"
                             :placeholder="t('ai_setting.chat.model.placeholder')"
@@ -149,7 +149,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import type { FormInst, FormRules } from "naive-ui";
 import { NAlert, NButton, NCard, NDivider, NForm, NFormItem, NInput, NModal, NSelect, NSwitch, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
@@ -255,19 +255,33 @@ const chatRules: FormRules = {
 
 const chatProviderOptions = [
     { label: "硅基流动", value: "siliconflow" },
+    { label: "DeepSeek", value: "deepseek" },
     { label: "自定义", value: "custom" },
 ];
 
-const chatModelOptions = [
-    { label: "deepseek-ai/DeepSeek-V4-Flash", value: "deepseek-ai/DeepSeek-V4-Flash" },
-    { label: "Qwen/Qwen3.6-35B-A3B", value: "Qwen/Qwen3.6-35B-A3B" },
-];
+const chatModelOptions = computed(() => {
+    if (chatForm.provider === "siliconflow") {
+        return [
+            { label: "deepseek-ai/DeepSeek-V4-Flash", value: "deepseek-ai/DeepSeek-V4-Flash" },
+            { label: "Qwen/Qwen3.6-35B-A3B", value: "Qwen/Qwen3.6-35B-A3B" },
+        ];
+    } else if (chatForm.provider === "deepseek") {
+        return [
+            { label: "deepseek-v4-flash", value: "deepseek-v4-flash" },
+            { label: "deepseek-v4-pro", value: "deepseek-v4-pro" },
+        ];
+    }
+    return [];
+});
 
 // 渠道商切换处理
 const handleChatProviderChange = (value: string) => {
     if (value === "siliconflow") {
         chatForm.base_url = "https://api.siliconflow.cn/v1";
         chatForm.model = "deepseek-ai/DeepSeek-V4-Flash";
+    } else if (value === "deepseek") {
+        chatForm.base_url = "https://api.deepseek.com";
+        chatForm.model = "deepseek-v4-flash";
     } else {
         chatForm.base_url = "";
         chatForm.model = "";

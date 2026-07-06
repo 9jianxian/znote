@@ -11,6 +11,8 @@ export function getBaseURL(provider: string): string {
     switch (provider) {
         case "siliconflow":
             return "https://api.siliconflow.cn/v1";
+        case "deepseek":
+            return "https://api.deepseek.com";
         default:
             return "https://api.siliconflow.cn/v1";
     }

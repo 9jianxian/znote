@@ -21,15 +21,12 @@ if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
 }
 
-// 从数据库加载对话模型配置
-const chatConfig = await getAIChatConfig();
-const chatOpenAI = createOpenAI({
-    baseURL: chatConfig?.provider ? getBaseURL(chatConfig.provider) : "https://api.siliconflow.cn/v1",
-    apiKey: chatConfig?.api_key || "",
-    fetch: Object.assign(
+/** 创建带超时的 fetch 包装 */
+function createTimeoutFetch(timeoutMs = 120_000) {
+    return Object.assign(
         async (input: URL | RequestInfo, init?: RequestInit | BunFetchRequestInit) => {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120_000);
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             try {
                 init = init || {};
                 const origSignal = init.signal;
@@ -43,8 +40,15 @@ const chatOpenAI = createOpenAI({
             }
         },
         { preconnect: () => {} }
-    ),
+    );
+}
 
+// 从数据库加载对话模型配置
+const chatConfig = await getAIChatConfig();
+const chatOpenAI = createOpenAI({
+    baseURL: chatConfig?.base_url || "https://api.siliconflow.cn/v1",
+    apiKey: chatConfig?.api_key || "",
+    fetch: createTimeoutFetch(),
 });
 const chatModel = chatOpenAI.chat(chatConfig?.model || "deepseek-ai/DeepSeek-V4-Flash");
 
@@ -165,6 +169,18 @@ export const ragAgent = new Agent({
     tools: { "search-notes": searchNotesTool },
     memory,
 });
+
+/** 动态刷新对话模型配置（修改设置后无需重启即可生效） */
+export async function refreshAgentModel() {
+    const config = await getAIChatConfig();
+    if (!config?.base_url || !config?.api_key) return;
+    const provider = createOpenAI({
+        baseURL: config.base_url,
+        apiKey: config.api_key,
+        fetch: createTimeoutFetch(),
+    });
+    (ragAgent as any).model = provider.chat(config.model || "deepseek-ai/DeepSeek-V4-Flash");
+}
 
 /** Mastra 实例 */
 export const mastra = new Mastra({

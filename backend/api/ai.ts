@@ -375,8 +375,9 @@ export async function chatWithNotes(c: Context) {
         return c.json({ code: -1000, msg: "ai.chat.notebook_not_found", data: null });
     }
 
-    // 获取 Agent 实例
-    const { mastra } = await import("@/db/mastra");
+    // 获取 Agent 实例，并刷新模型配置
+    const { mastra, refreshAgentModel } = await import("@/db/mastra");
+    await refreshAgentModel();
     const agent = mastra.getAgentById("rag-agent");
     if (!agent) {
         return c.json({ code: -1000, msg: "ai.chat.agent_not_found", data: null });
@@ -490,7 +491,8 @@ export async function guestChat(c: Context) {
         return c.json({ code: -1000, msg: "doc.chat.notebook_not_found", data: null });
     }
 
-    const { mastra } = await import("@/db/mastra");
+    const { mastra, refreshAgentModel } = await import("@/db/mastra");
+    await refreshAgentModel();
     const agent = mastra.getAgentById("rag-agent");
     if (!agent) {
         return c.json({ code: -1000, msg: "doc.chat.agent_not_found", data: null });
