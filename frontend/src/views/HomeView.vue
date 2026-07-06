@@ -51,12 +51,12 @@ const features: FeatureItem[] = [
     { icon: "ri:markdown-line",       titleKey: "home.features.markdown.title", descKey: "home.features.markdown.desc" },
     { icon: "ri:server-line",         titleKey: "home.features.selfhost.title", descKey: "home.features.selfhost.desc" },
     { icon: "ri:shield-keyhole-line", titleKey: "home.features.private.title",  descKey: "home.features.private.desc" },
+    { icon: "ri:robot-2-line",        titleKey: "home.features.ai.title",       descKey: "home.features.ai.desc" },
     { icon: "ri:global-line",         titleKey: "home.features.web.title",      descKey: "home.features.web.desc" },
     { icon: "ri:drag-move-2-line",    titleKey: "home.features.sort.title",     descKey: "home.features.sort.desc" },
     { icon: "ri:file-zip-line",       titleKey: "home.features.import.title",   descKey: "home.features.import.desc" },
     { icon: "ri:history-line",        titleKey: "home.features.version.title",  descKey: "home.features.version.desc" },
     { icon: "ri:team-line",           titleKey: "home.features.multiuser.title", descKey: "home.features.multiuser.desc" },
-    { icon: "ri:leaf-line",           titleKey: "home.features.light.title",    descKey: "home.features.light.desc" },
     { icon: "ri:file-text-line",      titleKey: "home.features.doc.title",      descKey: "home.features.doc.desc" },
     { icon: "ri:share-box-line",      titleKey: "home.features.share.title",    descKey: "home.features.share.desc" },
 ];
