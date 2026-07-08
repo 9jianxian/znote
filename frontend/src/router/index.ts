@@ -94,7 +94,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
     const publicPaths = ["/", "/user/init", "/user/login", "/user/register"];
-    if (publicPaths.includes(to.path) || to.path.startsWith("/docs") || to.path.startsWith("/doc/") || to.path.startsWith("/s/")) {
+    if (publicPaths.includes(to.path) || to.path.startsWith("/docs") || to.path.startsWith("/doc/") || to.path.startsWith("/s/") || to.name === "notFound") {
         return true;
     }
 

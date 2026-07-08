@@ -182,6 +182,3 @@ adminRouter.post("/doc/delete", deleteDoc);
 
 // AI 管理
 adminRouter.post("/reset_vectorization", resetVectorization);
-
-// 兜底路由：所有未匹配的 GET 请求返回 SPA HTML，由前端 Vue Router 接管（含 404 页面）
-publicRouter.notFound(index);
